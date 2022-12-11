@@ -1,0 +1,4 @@
+gradio==2.4.6
+stockfish==3.28.0
+torch==1.12.0
+tqdm==4.46.0
