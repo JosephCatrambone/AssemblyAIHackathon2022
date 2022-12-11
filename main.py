@@ -10,7 +10,7 @@ import data
 from tqdm import tqdm
 
 class ChessModel(nn.Module):
-    def __init__(self, embedding_dims=3):
+    def __init__(self, embedding_dims):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(data.BOARD_VECTOR_SIZE, 512),
@@ -63,7 +63,7 @@ class ChessModel(nn.Module):
 def train():
     device_string = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_string)
-    model = ChessModel().to(torch.float32).to(device)
+    model = ChessModel(128).to(torch.float32).to(device)
     opt = torch.optim.Adam(model.parameters())
     reconstruction_loss_fn = nn.CrossEntropyLoss().to(torch.float32).to(device)
     popularity_loss_fn = nn.L1Loss().to(torch.float32).to(device)
