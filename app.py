@@ -5,7 +5,7 @@ from board import BitBoard
 from data import bitboard_to_tensor
 from model import ChessModel
 
-mdl = torch.load("checkpoints/model.pth", map_location='cpu')
+mdl = torch.load("model.pth", map_location='cpu')
 
 def evaluate_fen(fen):
     board = BitBoard.from_fen(fen)
