@@ -14,8 +14,6 @@ class ChessModel(nn.Module):
             nn.SiLU(),
             nn.Linear(1024, 1024),
             nn.SiLU(),
-            nn.Linear(1024, 1024),
-            nn.SiLU(),
             nn.Linear(1024, embedding_dims),
             nn.SiLU(),
         )

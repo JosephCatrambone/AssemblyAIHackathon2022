@@ -9,16 +9,17 @@ from tqdm import tqdm
 import data
 from model import ChessModel
 
+
 def train():
     device_string = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_string)
-    model = ChessModel(128).to(torch.float32).to(device)
+    model = ChessModel(256).to(torch.float32).to(device)
     opt = torch.optim.Adam(model.parameters())
     reconstruction_loss_fn = nn.CrossEntropyLoss().to(torch.float32).to(device)
     popularity_loss_fn = nn.L1Loss().to(torch.float32).to(device)
     evaluation_loss_fn = nn.L1Loss().to(torch.float32).to(device)
     data_loader = DataLoader(data.LichessPuzzleDataset(cap_data=65536), batch_size=64, num_workers=1)  # 1 to avoid threading madness.
-    num_epochs = 10
+    num_epochs = 100
 
     for epoch in range(num_epochs):
         model.train()
