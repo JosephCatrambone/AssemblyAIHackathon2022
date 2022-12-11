@@ -1,9 +1,14 @@
 from enum import IntEnum
 
+
+PIECE_TYPES = 14
+
+
 class Player(IntEnum):
     WHITE = 1
     BLACK = 2
-    
+
+
 class Piece(IntEnum):
     PAWN_W = 1
     PAWN_B = 2
@@ -39,8 +44,9 @@ class Piece(IntEnum):
 
 class BitBoard:
     def __init__(self):
-        self.boards = [0]*14
+        self.boards = [0]*PIECE_TYPES
         self.next_to_move = Player.WHITE
+        self.castling_status = set()  # Just add pieces for QUEEN_B, etc.
         self.halfstep_count = 0
         self.fullstep_count = 0
 
@@ -70,6 +76,8 @@ class BitBoard:
             raise Exception(f"Bad parse.  Starting player unrecognized: {current_player}")
 
         # Parse castling here.
+        for character in castle_status:
+            new_board.castling_status.add(Piece.from_fen(character))
 
         # Parse en_passant here
 
@@ -79,7 +87,7 @@ class BitBoard:
         return new_board
 
     def get_piece(self, x, y):
-        assert(x >= 0 and x < 8 and y >= 0 and y < 8)
+        assert(0 <= x < 8 and 0 <= y < 8)
         # X and Y should be in the range 0-7 inclusive.
         # a1 is bottom-left, bit zero.
         # h8 is the top-right, bit 63.
@@ -97,5 +105,3 @@ class BitBoard:
             for i in range(1, 13):
                 self.boards[i] &= clear_mask
         self.boards[int(piece)] |= idx
-        
-        
