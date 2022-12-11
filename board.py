@@ -4,6 +4,11 @@ from enum import IntEnum
 PIECE_TYPES = 14
 
 
+_COLUMN_TO_INT = {
+    c:num for c, num in zip("abcdefgh", range(0, 8))
+}
+
+
 class Player(IntEnum):
     WHITE = 1
     BLACK = 2
@@ -50,6 +55,25 @@ class BitBoard:
         self.halfstep_count = 0
         self.fullstep_count = 0
 
+    def make_move(self, mv: str):
+        # NOTE: This does not handle castling yet and probably screws up clearing en-passant.
+        # Convert the pair into from/to.
+        from_x = _COLUMN_TO_INT[mv[0].lower()]
+        from_y = int(mv[1])-1
+        to_x = _COLUMN_TO_INT[mv[2].lower()]
+        to_y = int(mv[3])-1
+        promote_to = None
+        if len(mv) > 3:
+            promote_to = Piece.from_fen(mv[4])
+
+        # Clear piece at moving spot.
+        moving_piece = self.get_piece(from_x, from_y)
+        self.clear_piece(from_x, from_y)
+        if promote_to is None:
+            self.set_piece(to_x, to_y, moving_piece)
+        else:
+            self.set_piece(to_x, to_y, promote_to)
+
     @classmethod
     def from_fen(cls, fen_string: str):
         # rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
@@ -92,7 +116,7 @@ class BitBoard:
         # a1 is bottom-left, bit zero.
         # h8 is the top-right, bit 63.
         idx = (1 << x+y*8)
-        for i in range(1, 13):
+        for i in range(1, PIECE_TYPES):
             if self.boards[i] & idx:
                 return Piece(i)
         return None
@@ -101,7 +125,12 @@ class BitBoard:
         assert(x >= 0 and x < 8 and y >= 0 and y < 8)
         idx = (1 << x+y*8)
         if clear_previous:
-            clear_mask = 0xFFFF_FFFF_FFFF_FFFF & ~idx
-            for i in range(1, 13):
-                self.boards[i] &= clear_mask
+            self.clear_piece(x, y)
         self.boards[int(piece)] |= idx
+
+    def clear_piece(self, x, y):
+        assert (x >= 0 and x < 8 and y >= 0 and y < 8)
+        idx = (1 << x + y * 8)
+        clear_mask = 0xFFFF_FFFF_FFFF_FFFF & ~idx
+        for i in range(0, PIECE_TYPES):
+            self.boards[i] &= clear_mask
