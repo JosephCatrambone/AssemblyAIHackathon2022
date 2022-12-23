@@ -10,16 +10,39 @@ import data
 from model import ChessModel
 
 
+# Experiment parameters:
+RUN_CONFIGURATION = {
+    "learning_rate": 0.0004,
+    "dataset_cap": 100000,
+    "epochs": 1000,
+    "latent_size": 256,
+}
+
+# Logging:
+wandb = None
+try:
+    import wandb
+    wandb.init("assembly_ai_hackathon_2022", config=RUN_CONFIGURATION)
+except ImportError:
+    print("Weights and Biases not found in packages.")
+
+
 def train():
+    learning_rate = RUN_CONFIGURATION["learning_rate"]
+    latent_size = RUN_CONFIGURATION["latent_size"]
+    data_cap = RUN_CONFIGURATION["dataset_cap"]
+    num_epochs = RUN_CONFIGURATION["epochs"]
+
     device_string = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_string)
-    model = ChessModel(256).to(torch.float32).to(device)
-    opt = torch.optim.Adam(model.parameters())
+    model = ChessModel(latent_size).to(torch.float32).to(device)
+    opt = torch.optim.Adam(model.parameters(), lr=learning_rate)
     reconstruction_loss_fn = nn.CrossEntropyLoss().to(torch.float32).to(device)
     popularity_loss_fn = nn.L1Loss().to(torch.float32).to(device)
     evaluation_loss_fn = nn.L1Loss().to(torch.float32).to(device)
-    data_loader = DataLoader(data.LichessPuzzleDataset(cap_data=65536), batch_size=64, num_workers=1)  # 1 to avoid threading madness.
-    num_epochs = 100
+    data_loader = DataLoader(data.LichessPuzzleDataset(cap_data=data_cap), batch_size=64, num_workers=1)  # 1 to avoid threading madness.
+    save_every_nth_epoch = 50
+    upload_logs_every_nth_epoch = 1
 
     for epoch in range(num_epochs):
         model.train()
@@ -38,7 +61,8 @@ def train():
             reconstruction_loss = reconstruction_loss_fn(predicted_board_vec, board_vec)
             popularity_loss = popularity_loss_fn(predicted_popularity, popularity)
             evaluation_loss = evaluation_loss_fn(predicted_evaluation, evaluation)
-            total_loss = reconstruction_loss + popularity_loss + evaluation_loss
+            #total_loss = reconstruction_loss + popularity_loss + evaluation_loss
+            total_loss = popularity_loss
 
             opt.zero_grad()
             total_loss.backward()
@@ -54,7 +78,19 @@ def train():
         print(f"Average evaluation loss: {total_evaluation_loss/num_batches}")
         print(f"Average batch loss: {total_batch_loss/num_batches}")
 
-        torch.save(model, f"checkpoints/epoch_{epoch}.pth")
+        if save_every_nth_epoch > 0 and (epoch % save_every_nth_epoch) == 0:
+            torch.save(model, f"checkpoints/epoch_{epoch}.pth")
+
+        if wandb:
+            wandb.log(
+                # For now, just log popularity.
+                {"popularity_loss": total_popularity_loss},
+                commit=(epoch+1) % upload_logs_every_nth_epoch == 0
+            )
+
+    torch.save(model, "checkpoints/final.pth")
+    if wandb:
+        wandb.finish()
 
 
 def infer(fen):
